@@ -144,6 +144,7 @@ public:
     Q_PROPERTY(VideoCodecConfig videoCodecConfig MEMBER videoCodecConfig NOTIFY videoCodecConfigChanged)
     Q_PROPERTY(bool enableHdr MEMBER enableHdr NOTIFY enableHdrChanged)
     Q_PROPERTY(bool enableYUV444 MEMBER enableYUV444 NOTIFY enableYUV444Changed)
+    Q_PROPERTY(bool videoOverTcp MEMBER videoOverTcp NOTIFY videoOverTcpChanged)
     Q_PROPERTY(VideoDecoderSelection videoDecoderSelection MEMBER videoDecoderSelection NOTIFY videoDecoderSelectionChanged)
     Q_PROPERTY(RendererSelection rendererSelection MEMBER rendererSelection NOTIFY rendererSelectionChanged)
     Q_PROPERTY(WindowMode windowMode MEMBER windowMode NOTIFY windowModeChanged)
@@ -193,6 +194,7 @@ public:
     VideoCodecConfig videoCodecConfig;
     bool enableHdr;
     bool enableYUV444;
+    bool videoOverTcp;
     VideoDecoderSelection videoDecoderSelection;
     WindowMode windowMode;
     WindowMode recommendedFullScreenMode;
@@ -219,6 +221,7 @@ signals:
     void videoCodecConfigChanged();
     void enableHdrChanged();
     void enableYUV444Changed();
+    void videoOverTcpChanged();
     void videoDecoderSelectionChanged();
     void uiDisplayModeChanged();
     void windowModeChanged();

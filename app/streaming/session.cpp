@@ -694,6 +694,13 @@ bool Session::initialize(QQuickWindow* qtWindow)
     }
 #endif
 
+    // Video over several TCP connections, used only when the host offers it.
+    // MOONLIGHT_VIDEO_TCP_CONNECTIONS overrides the setting (0 forces UDP).
+    m_StreamConfig.videoTcpConnections = m_Preferences->videoOverTcp ? 4 : 0;
+    if (qEnvironmentVariableIsSet("MOONLIGHT_VIDEO_TCP_CONNECTIONS")) {
+        m_StreamConfig.videoTcpConnections = qEnvironmentVariableIntValue("MOONLIGHT_VIDEO_TCP_CONNECTIONS");
+    }
+
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
                 "Video bitrate: %d kbps",
                 m_StreamConfig.bitrate);

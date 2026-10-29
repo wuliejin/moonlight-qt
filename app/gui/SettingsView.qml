@@ -871,6 +871,22 @@ Flickable {
                                     :
                                       qsTr("HDR streaming is not supported on this PC.")
                 }
+
+                CheckBox {
+                    id: videoOverTcpCheck
+                    width: parent.width
+                    text: qsTr("视频走 TCP（实验，需要改版 Apollo）")
+                    font.pointSize: 12
+                    checked: StreamingPreferences.videoOverTcp
+                    onCheckedChanged: {
+                        StreamingPreferences.videoOverTcp = checked
+                    }
+
+                    ToolTip.delay: 1000
+                    ToolTip.timeout: 5000
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("用 4 条 TCP 连接传视频，绕过线路对 UDP 的限速。主机不支持时自动使用 UDP。")
+                }
             }
         }
 

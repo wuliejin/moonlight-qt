@@ -1,5 +1,16 @@
 # Moonlight PC
 
+## 此 fork 的自定义功能
+
+`master` 包含 TCP 视频接收、Xbox 手柄实际型号识别、机身及扳机震动回传，
+以及 DualSense 高清波形触觉客户端。需要搭配
+[本 fork 的 Apollo](https://github.com/wuliejin/Apollo)。
+驱动要求和验证范围见 [手柄集成说明](https://github.com/wuliejin/Apollo/blob/master/docs/native_gamepads.md)。
+
+```sh
+git clone --recurse-submodules https://github.com/wuliejin/moonlight-qt.git
+```
+
 [Moonlight PC](https://moonlight-stream.org) is an open source PC client for NVIDIA GameStream and [Sunshine](https://github.com/LizardByte/Sunshine).
 
 Moonlight also has mobile versions for [Android](https://github.com/moonlight-stream/moonlight-android) and [iOS](https://github.com/moonlight-stream/moonlight-ios).

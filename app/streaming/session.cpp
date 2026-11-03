@@ -1,6 +1,7 @@
 #include "session.h"
 #include "settings/streamingpreferences.h"
 #include "streaming/streamutils.h"
+#include "streaming/input/dualsensehaptics.h"
 #include "backend/richpresencemanager.h"
 
 #include <Limelight.h>
@@ -60,7 +61,8 @@ CONNECTION_LISTENER_CALLBACKS Session::k_ConnCallbacks = {
     Session::clRumbleTriggers,
     Session::clSetMotionEventState,
     Session::clSetControllerLED,
-    Session::clSetAdaptiveTriggers
+    Session::clSetAdaptiveTriggers,
+    DualSenseHaptics::receive
 };
 
 Session* Session::s_ActiveSession;

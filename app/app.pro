@@ -50,7 +50,7 @@ win32 {
     }
 
     INCLUDEPATH += $$PWD/../libs/windows/include
-    LIBS += ws2_32.lib winmm.lib dxva2.lib ole32.lib gdi32.lib user32.lib d3d9.lib dwmapi.lib dbghelp.lib
+    LIBS += ws2_32.lib winmm.lib dxva2.lib ole32.lib gdi32.lib user32.lib d3d9.lib dwmapi.lib dbghelp.lib cfgmgr32.lib hid.lib
 }
 macx:!disable-prebuilts {
     !exists($$PWD/../libs/mac) {
@@ -166,6 +166,9 @@ macx {
 }
 
 SOURCES += \
+    streaming/input/dualsensehaptics.cpp \
+    streaming/input/dualsensehid.cpp \
+    streaming/input/nativegamepadidentity.cpp \
     backend/nvaddress.cpp \
     backend/nvapp.cpp \
     cli/pair.cpp \
@@ -207,6 +210,9 @@ SOURCES += \
     wm.cpp
 
 HEADERS += \
+    streaming/input/dualsensehaptics.h \
+    streaming/input/dualsensehid.h \
+    streaming/input/nativegamepadidentity.h \
     SDL_compat.h \
     backend/nvaddress.h \
     backend/nvapp.h \

@@ -1,4 +1,7 @@
 #include "streaming/session.h"
+#include "dualsensehaptics.h"
+#include "nativegamepadidentity.h"
+#include <ControllerHaptics.h>
 
 #include <Limelight.h>
 #include "SDL_compat.h"
@@ -634,7 +637,11 @@ void SdlInputHandler::handleControllerDeviceEvent(SDL_ControllerDeviceEvent* eve
         name = SDL_GameControllerName(state->controller);
 
         uint16_t vendorId = SDL_GameControllerGetVendor(state->controller);
+        state->hapticsAttached = DualSenseHaptics::attach(state->index, state->controller);
         uint16_t productId = SDL_GameControllerGetProduct(state->controller);
+#if SDL_VERSION_ATLEAST(2, 24, 0)
+        nativeGamepadUsbIds(SDL_GameControllerPath(state->controller), vendorId, productId);
+#endif
         SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
                     "Gamepad %d (player %d) is: %s (VID/PID: 0x%.4x/0x%.4x) (haptic capabilities: 0x%x) (mapping: %s -> %s)",
                     i,
@@ -673,6 +680,7 @@ void SdlInputHandler::handleControllerDeviceEvent(SDL_ControllerDeviceEvent* eve
         }
 
         uint32_t capabilities = 0;
+        if (state->hapticsAttached) capabilities |= LI_CCAP_HAPTICS_PCM;
         if (SDL_GameControllerGetBindForAxis(state->controller, SDL_CONTROLLER_AXIS_TRIGGERLEFT).bindType == SDL_CONTROLLER_BINDTYPE_AXIS ||
             SDL_GameControllerGetBindForAxis(state->controller, SDL_CONTROLLER_AXIS_TRIGGERRIGHT).bindType == SDL_CONTROLLER_BINDTYPE_AXIS) {
             // We assume these are analog triggers if the binding is to an axis rather than a button
@@ -706,13 +714,18 @@ void SdlInputHandler::handleControllerDeviceEvent(SDL_ControllerDeviceEvent* eve
         uint8_t type;
         switch (SDL_GameControllerGetType(state->controller)) {
         case SDL_CONTROLLER_TYPE_XBOX360:
+            type = LI_CTYPE_XBOX_360;
+            break;
         case SDL_CONTROLLER_TYPE_XBOXONE:
-            type = LI_CTYPE_XBOX;
+            type = vendorId == 0x045e && (productId == 0x0b12 || productId == 0x0b13) ?
+                LI_CTYPE_XBOX_SERIES : LI_CTYPE_XBOX_ONE;
             break;
         case SDL_CONTROLLER_TYPE_PS3:
         case SDL_CONTROLLER_TYPE_PS4:
-        case SDL_CONTROLLER_TYPE_PS5:
             type = LI_CTYPE_PS;
+            break;
+        case SDL_CONTROLLER_TYPE_PS5:
+            type = LI_CTYPE_DUALSENSE;
             break;
         case SDL_CONTROLLER_TYPE_NINTENDO_SWITCH_PRO:
 #if SDL_VERSION_ATLEAST(2, 24, 0)
@@ -758,7 +771,7 @@ void SdlInputHandler::handleControllerDeviceEvent(SDL_ControllerDeviceEvent* eve
 #if SDL_VERSION_ATLEAST(2, 0, 14)
             SDL_GameControllerGetBindForButton(state->controller, SDL_CONTROLLER_BUTTON_TOUCHPAD).bindType == SDL_CONTROLLER_BINDTYPE_NONE &&
 #endif
-            type == LI_CTYPE_PS;
+            (type == LI_CTYPE_PS || type == LI_CTYPE_DUALSENSE);
 
         LiSendControllerArrivalEvent(state->index, m_GamepadMask, type, supportedButtonFlags, capabilities);
 #else
@@ -780,6 +793,8 @@ void SdlInputHandler::handleControllerDeviceEvent(SDL_ControllerDeviceEvent* eve
                 SDL_RemoveTimer(state->mouseEmulationTimer);
             }
 
+            if (state->hapticsAttached) DualSenseHaptics::detach(state->index);
+            state->hapticsAttached = false;
             SDL_GameControllerClose(state->controller);
 
 #if !SDL_VERSION_ATLEAST(2, 0, 9)
@@ -842,6 +857,7 @@ void SdlInputHandler::handleJoystickArrivalEvent(SDL_JoyDeviceEvent* event)
 
 void SdlInputHandler::rumble(unsigned short controllerNumber, unsigned short lowFreqMotor, unsigned short highFreqMotor)
 {
+    if (DualSenseHaptics::playing(controllerNumber)) return;
     // Make sure the controller number is within our supported count
     if (controllerNumber >= MAX_GAMEPADS) {
         return;
@@ -849,7 +865,11 @@ void SdlInputHandler::rumble(unsigned short controllerNumber, unsigned short low
 
 #if SDL_VERSION_ATLEAST(2, 0, 9)
     if (m_GamepadState[controllerNumber].controller != nullptr) {
-        SDL_GameControllerRumble(m_GamepadState[controllerNumber].controller, lowFreqMotor, highFreqMotor, 30000);
+        const int result = SDL_GameControllerRumble(m_GamepadState[controllerNumber].controller, lowFreqMotor, highFreqMotor, 30000);
+        if (SDL_getenv("MOONLIGHT_GAMEPAD_TRACE")) {
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Gamepad rumble slot=%u low=%u high=%u SDL=%d %s",
+                        controllerNumber, lowFreqMotor, highFreqMotor, result, result ? SDL_GetError() : "");
+        }
     }
 #else
     // Check if the controller supports haptics (and if the controller exists at all)
@@ -907,7 +927,11 @@ void SdlInputHandler::rumbleTriggers(uint16_t controllerNumber, uint16_t leftTri
 
 #if SDL_VERSION_ATLEAST(2, 0, 14)
     if (m_GamepadState[controllerNumber].controller != nullptr) {
-        SDL_GameControllerRumbleTriggers(m_GamepadState[controllerNumber].controller, leftTrigger, rightTrigger, 30000);
+        const int result = SDL_GameControllerRumbleTriggers(m_GamepadState[controllerNumber].controller, leftTrigger, rightTrigger, 30000);
+        if (SDL_getenv("MOONLIGHT_GAMEPAD_TRACE")) {
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Gamepad trigger rumble slot=%u left=%u right=%u SDL=%d %s",
+                        controllerNumber, leftTrigger, rightTrigger, result, result ? SDL_GetError() : "");
+        }
     }
 #endif
 }
@@ -965,7 +989,7 @@ void SdlInputHandler::setAdaptiveTriggers(uint16_t controllerNumber, DualSenseOu
 
 #if SDL_VERSION_ATLEAST(2, 0, 16)
         // Make sure the controller number is within our supported count
-    if (controllerNumber <= MAX_GAMEPADS &&
+    if (controllerNumber < MAX_GAMEPADS &&
         // and we have a valid controller
         m_GamepadState[controllerNumber].controller != nullptr &&
         // and it's a PS5 controller

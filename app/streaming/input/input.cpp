@@ -1,6 +1,7 @@
 #include <Limelight.h>
 #include "SDL_compat.h"
 #include "streaming/session.h"
+#include "dualsensehaptics.h"
 #include "settings/mappingmanager.h"
 #include "path.h"
 #include "utils.h"
@@ -229,6 +230,7 @@ SdlInputHandler::~SdlInputHandler()
         }
 #endif
         if (m_GamepadState[i].controller != nullptr) {
+            if (m_GamepadState[i].hapticsAttached) DualSenseHaptics::detach(m_GamepadState[i].index);
             SDL_GameControllerClose(m_GamepadState[i].controller);
         }
     }
